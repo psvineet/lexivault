@@ -767,6 +767,9 @@ if (isset($_GET['api'])) {
             $starred = count(array_filter($words, fn($w) => $w['starred'] ?? false));
             $today = count(array_filter($words, fn($w) => ($w['date_tag'] ?? '') === date('Y-m-d')));
             $week = count(array_filter($words, fn($w) => ($w['date_tag'] ?? '') >= date('Y-m-d', strtotime('-7 days'))));
+            // Engagement rate = % of words that have been opened/reviewed at least once
+            $engaged = count(array_filter($words, fn($w) => (int)($w['review_count'] ?? 0) > 0));
+            $engagement_rate = $total > 0 ? round(($engaged / $total) * 100) : 0;
             // Per category
             $catCounts = [];
             $catMap = array_column($cats, 'name', 'id');
@@ -812,7 +815,8 @@ if (isset($_GET['api'])) {
 
             jsonResponse(['success' => true, 'stats' => [
                 'total' => $total, 'mastered' => $mastered, 'starred' => $starred,
-                'today' => $today, 'week' => $week, 'categories' => $catCounts, 'daily' => $daily,
+                'today' => $today, 'week' => $week, 'engagement_rate' => $engagement_rate,
+                'categories' => $catCounts, 'daily' => $daily,
                 'most_opened' => $most_opened, 'today_learned' => array_values($today_learned),
                 'wotd' => $wotd,
                 'server_today' => $todayDate
@@ -1560,7 +1564,7 @@ body {
 /* ---- STATS CARDS ---- */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -1591,6 +1595,7 @@ body {
 .stat-icon.green { background: rgba(34,139,87,0.1); color: var(--success); border-color: rgba(34,139,87,0.18); }
 .stat-icon.gold { background: rgba(184,134,11,0.1); color: var(--gold); border-color: rgba(184,134,11,0.2); }
 .stat-icon.navy { background: rgba(10,22,40,0.06); color: var(--navy-600); border-color: rgba(10,22,40,0.12); }
+.stat-icon.teal { background: rgba(13,148,136,0.1); color: #0d9488; border-color: rgba(13,148,136,0.2); }
 .stat-icon svg { width: 22px; height: 22px; }
 .stat-info .stat-value {
   font-size: 28px;
@@ -1962,9 +1967,10 @@ body {
 /* ---- TABLE ---- */
 .data-table {
   width: 100%;
+  min-width: 680px;
   border-collapse: collapse;
   font-size: 13.5px;
-  table-layout: fixed;
+  table-layout: auto;
 }
 .data-table th {
   text-align: left;
@@ -1976,16 +1982,12 @@ body {
   color: var(--gray-500);
   border-bottom: 2px solid var(--gray-100);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .data-table td {
   padding: 13px 16px;
   border-bottom: 1px solid var(--gray-100);
   vertical-align: middle;
   color: var(--gray-700);
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 .data-table tr:hover td { background: var(--gray-50); }
@@ -2176,15 +2178,15 @@ body {
 .chart-bar-label { width: 130px; flex-shrink: 0; color: var(--gray-600); font-weight: 500; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .chart-bar-track {
   flex: 1;
-  height: 10px;
+  height: 12px;
   background: var(--gray-100);
-  border-radius: 5px;
+  border-radius: 999px;
   overflow: hidden;
 }
 .chart-bar-fill {
   height: 100%;
-  border-radius: 5px;
-  background: linear-gradient(90deg, var(--navy-500), var(--accent));
+  border-radius: 999px;
+  background: var(--accent);
   transition: width 0.3s ease;
 }
 .chart-bar-count { color: var(--gray-500); width: 35px; flex-shrink: 0; text-align: right; font-size: 12px; font-weight: 600; }
@@ -2299,9 +2301,10 @@ body {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   display: block;
-  scrollbar-width: none;
+  scrollbar-width: thin;
 }
-.table-responsive::-webkit-scrollbar { display: none; }
+.table-responsive::-webkit-scrollbar { height: 6px; }
+.table-responsive::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 4px; }
 #words-table-view .card {
   overflow: hidden;
   min-width: 0;
@@ -2353,6 +2356,9 @@ body {
   .header-title { font-size: 15px; }
   .sidebar-logo { padding: 14px 16px; }
 }
+@media (max-width: 1024px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+}
 @media (max-width: 900px) {
   .sidebar { transform: translateX(-100%); }
   .sidebar.open { transform: translateX(0); }
@@ -2362,9 +2368,10 @@ body {
   .form-row { grid-template-columns: 1fr; }
   
   .login-panel { padding: 40px 24px; }
-  #dash-charts, #dash-lists { grid-template-columns: 1fr; }}
+  #dash-charts, #dash-lists { grid-template-columns: 1fr; gap: 12px; }}
 @media (max-width: 600px) {
-  .stats-grid { grid-template-columns: 1fr 1fr; }
+  #dash-charts, #dash-lists { gap: 10px; margin-bottom: 10px; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .stat-card { padding: 12px; gap: 10px; }
   .stat-icon { width: 36px; height: 36px; }
   .stat-info .stat-value { font-size: 20px; }
@@ -2414,6 +2421,12 @@ body {
 }
 @media (max-width: 400px) {
     .words-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 420px) {
+    .stats-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 700px) {
+    .ie-grid { grid-template-columns: 1fr !important; }
 }
 
 /* ---- OVERLAY for mobile sidebar ---- */
@@ -2564,7 +2577,7 @@ body {
 }
 .dash-list-item:hover { background: rgba(0,0,0,0.02); }
 .dash-list-item:last-child { border-bottom: none; }
-#dash-charts, #dash-lists { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+#dash-charts, #dash-lists { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
 
 </style>
 <style>
@@ -3158,6 +3171,10 @@ function escapeHtml(unsafe) {
           <div class="stat-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
           <div class="stat-info"><div class="stat-value" id="stat-week">–</div><div class="stat-label">This Week</div></div>
         </div>
+        <div class="stat-card">
+          <div class="stat-icon teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+          <div class="stat-info"><div class="stat-value" id="stat-engagement">–</div><div class="stat-label">Engagement Rate</div></div>
+        </div>
       </div>
 
       <div id="wotd-container" style="display:none; margin-bottom:16px;"></div>
@@ -3167,6 +3184,7 @@ function escapeHtml(unsafe) {
           <div class="card-header">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" style="color:var(--accent)"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
             <h3>By Category</h3>
+            <a href="?page=categories" class="btn btn-sm btn-ghost" style="margin-left:auto">View All</a>
           </div>
           <div class="card-body" id="cat-chart">
             <div class="loading"><div class="spinner"></div> Loading...</div>
@@ -3185,11 +3203,19 @@ function escapeHtml(unsafe) {
 
       <div id="dash-lists">
         <div class="card">
-          <div class="card-header"><h3 style="display:flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" style="color:var(--accent)"><path d="M2 12h4l3-9 5 18 3-9h5"/></svg> Most Opened Words</h3></div>
+          <div class="card-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" style="color:var(--accent)"><path d="M2 12h4l3-9 5 18 3-9h5"/></svg>
+          <h3>Most Opened Words</h3>
+          <a href="?page=words" class="btn btn-sm btn-ghost" style="margin-left:auto">View All</a>
+        </div>
           <div class="card-body" id="most-opened-list" style="padding:0"></div>
         </div>
         <div class="card">
-          <div class="card-header"><h3 style="display:flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" style="color:var(--accent)"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg> Recently Learned</h3></div>
+          <div class="card-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" style="color:var(--accent)"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+          <h3>Recently Learned</h3>
+          <a href="?page=words" class="btn btn-sm btn-ghost" style="margin-left:auto">View All</a>
+        </div>
           <div class="card-body" id="today-learned-list" style="padding:0"></div>
         </div>
       </div>
@@ -3354,7 +3380,7 @@ function escapeHtml(unsafe) {
 
     <?php elseif ($page === 'import_export'): ?>
     <!-- ======= IMPORT / EXPORT ======= -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <div class="ie-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
       <div class="card">
         <div class="card-header">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" style="color:var(--accent)"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>
@@ -3736,6 +3762,7 @@ function escapeHtml(unsafe) {
 // ============================================================
 // GLOBAL STATE
 // ============================================================
+const CSRF_TOKEN = <?= json_encode($_SESSION['csrf_token'] ?? '') ?>;
 let currentPage = 1;
 let perPage = <?= $wordsPerPage ?? 20 ?>;
 let currentView = 'grid';
@@ -3924,7 +3951,8 @@ async function api(action, data = {}, method = 'GET') {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
-        'Expires': '0'
+        'Expires': '0',
+        'X-CSRF-Token': CSRF_TOKEN
       } 
     };
     if (method === 'POST') opts.body = JSON.stringify(data);
@@ -3984,6 +4012,7 @@ async function loadDashboard() {
   document.getElementById('stat-starred').textContent = s.starred;
   document.getElementById('stat-today').textContent = s.today;
   document.getElementById('stat-week').textContent = s.week;
+  document.getElementById('stat-engagement').textContent = (s.engagement_rate ?? 0) + '%';
   
   // Word of the day — use today's stored word if available, else server's seeded pick
   renderWOTD(getStoredWOTD() || s.wotd);
@@ -4068,14 +4097,6 @@ async function loadDashboard() {
     let defs = `<defs>`;
     entries.forEach(([date, count], i) => {
       const isToday = date === serverToday;
-      const isEmpty = count === 0;
-      // App palette matching stats cards
-      const top = isEmpty ? '#f9f6ee' : (isToday ? '#e0bb52' : '#d9c787');
-      const bot = isEmpty ? '#f0ead9' : (isToday ? '#b8860b' : '#a78a3f');
-      defs += `<linearGradient id="${uid}_g${i}" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="${top}"/>
-        <stop offset="100%" stop-color="${bot}"/>
-      </linearGradient>`;
       if (isToday) {
         defs += `<filter id="${uid}_glow" x="-20%" y="-20%" width="140%" height="140%">
           <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#b8860b" flood-opacity="0.3"/>
@@ -4114,6 +4135,9 @@ async function loadDashboard() {
       // Text colors from app palette
       const dayColor  = isToday ? '#8a6a14' : '#9a8f6e';   // gold-dark vs warm gray
       const dateColor = isToday ? '#b8860b' : '#b3a780';   // gold vs muted gold-gray
+      // Flat fill colors (no gradient)
+      const isEmpty   = count === 0;
+      const barFill   = isEmpty ? '#f0ead9' : (isToday ? '#b8860b' : '#c9b06b');
 
       svg += `<g class="daily-bar-group${isToday ? ' bar-today' : ''}" onclick="focusDailyBar(this,event)">`;
 
@@ -4130,7 +4154,7 @@ async function loadDashboard() {
         const pathD = `M ${x},${barY + barRx} A ${barRx},${barRx} 0 0 1 ${x + barRx},${barY} L ${x + barW - barRx},${barY} A ${barRx},${barRx} 0 0 1 ${x + barW},${barY + barRx} L ${x + barW},${barY + barH} L ${x},${barY + barH} Z`;
         svg += `<path class="bar-rect"
           d="${pathD}"
-          fill="url(#${uid}_g${i})"
+          fill="${barFill}"
           ${isToday ? `filter="url(#${uid}_glow)"` : ''}
           style="pointer-events:none;transition:filter 0.2s ease, transform 0.2s ease;">
           <title>${date}: ${count} word${count !== 1 ? 's' : ''}</title>
@@ -4231,25 +4255,29 @@ function renderWOTD(w) {
   storeWOTD(w);
   wc.style.display = 'block';
   wc.innerHTML = `
-    <div class="card" style="background: linear-gradient(135deg, var(--navy-900) 0%, #2d2410 55%, var(--gold-dark, #8a6a14) 100%); color: white; border: none; overflow:hidden; position:relative;">
-      <svg width="100%" height="100%" style="position:absolute;inset:0;opacity:0.12;pointer-events:none;">
+    <div class="card" style="background: var(--navy-900); color: white; border: none; border-left: 4px solid var(--gold); overflow:hidden; position:relative;">
+      <svg width="100%" height="100%" style="position:absolute;inset:0;opacity:0.1;pointer-events:none;">
         <defs><pattern id="wotdDots" width="22" height="22" patternUnits="userSpaceOnUse">
           <circle cx="3" cy="3" r="1.6" fill="var(--gold)"/>
         </pattern></defs>
         <rect width="100%" height="100%" fill="url(#wotdDots)"/>
       </svg>
-      <div style="position:absolute; right:-20px; top:-20px; opacity:0.12;"><svg viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" width="160" height="160"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
-      <div class="card-body wotd-body">
-        <div style="flex: 1; min-width: 0;">
-          <div style="font-size:11px; color:var(--navy-200); text-transform:uppercase; font-weight:600; letter-spacing:1px; margin-bottom:4px; display:flex; align-items:center; gap:6px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Word of the Day</div>
-          <div style="font-size:28px; font-weight:700; margin-bottom:4px; font-family:'Noto Sans', sans-serif; word-break: break-word; overflow-wrap: break-word; line-height:1.2;">${esc(w.term)}</div>
-          <div style="font-size:14px; color:var(--navy-100); max-width:600px; line-height:1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">${(w.definition || '').replace(/<[^>]+>/g, '') || '<em>No definition</em>'}</div>
+      <div class="card-body wotd-body" style="position:relative; z-index:1;">
+        <div style="display:flex; align-items:flex-start; gap:16px; flex:1; min-width:0;">
+          <div style="flex-shrink:0; width:44px; height:44px; border-radius:12px; background:rgba(212,160,23,0.16); border:1px solid rgba(212,160,23,0.35); display:flex; align-items:center; justify-content:center;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" width="20" height="20"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size:11px; color:var(--gold); text-transform:uppercase; font-weight:600; letter-spacing:1px; margin-bottom:4px;">Word of the Day</div>
+            <div style="font-size:26px; font-weight:700; margin-bottom:4px; font-family:'Noto Sans', sans-serif; word-break: break-word; overflow-wrap: break-word; line-height:1.2;">${esc(w.term)}</div>
+            <div style="font-size:14px; color:var(--navy-100); max-width:900px; line-height:1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">${(w.definition || '').replace(/<[^>]+>/g, '') || '<em>No definition</em>'}</div>
+          </div>
         </div>
         <div class="wotd-actions">
-          <button class="btn btn-icon" style="background:rgba(255,255,255,0.1); color:white; border:none;" onclick="refreshWOTD()" title="Get another word">
+          <button class="btn btn-icon" style="background:rgba(255,255,255,0.08); color:white; border:1px solid rgba(255,255,255,0.12);" onclick="refreshWOTD()" title="Get another word">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.92-10.44l5.67-5.67"/></svg>
           </button>
-          <button class="btn" style="background:rgba(255,255,255,0.15); color:white; border:1px solid rgba(255,255,255,0.2);" onclick="location.href='?page=words&view_id=${w.id}'">
+          <button class="btn" style="background:var(--navy-700); color:#ffffff; border:1px solid var(--gold); font-weight:600;" onclick="location.href='?page=words&view_id=${w.id}'">
             View Details
           </button>
         </div>
@@ -4872,6 +4900,7 @@ async function saveWord() {
 
   const r = await fetch('?api=word_save', {
     method: 'POST',
+    headers: { 'X-CSRF-Token': CSRF_TOKEN },
     body: fd
   }).then(res => res.json()).catch(e => ({success: false, message: 'Network error'}));
 
