@@ -9,7 +9,7 @@
 // ============================================================
 // CONFIGURATION
 // ============================================================
-define('APP_VERSION', '1.0.0');
+define('APP_VERSION', '1.1.0');
 define('DATA_DIR', __DIR__ . '/lexivault_data');
 define('SESSION_NAME', 'lexivault_session');
 
@@ -276,30 +276,62 @@ function sendDigestEmail($settings, $words) {
         $todayWords = array_slice(array_reverse($words), 0, 10);
     }
     $subject = "[LexiVault] Daily Word Digest - " . date('F j, Y');
-    $body = "<!DOCTYPE html><html><head><link href='https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,600;1,400&display=swap' rel='stylesheet'></head>";
-    $body .= "<body style=\"font-family:'Noto Sans', Arial, sans-serif;max-width:600px;margin:0 auto;background:#f4f7ff;padding:20px\">";
-    $body .= "<div style='background:#0d2137;padding:30px;border-radius:8px 8px 0 0;text-align:center'>";
-    $body .= "<h1 style='color:#fff;margin:0;font-size:24px'>LexiVault Daily Digest</h1>";
-    $body .= "<p style='color:#7fa8d4;margin:8px 0 0'>" . date('l, F j, Y') . "</p></div>";
-    $body .= "<div style='background:#fff;padding:30px;border-radius:0 0 8px 8px'>";
-    $body .= "<p style='color:#333;font-size:16px'>Here are your words for today:</p>";
+    // ---- Themed email template (creamy white + navy + gold) ----
+    $body = "<!DOCTYPE html><html lang='en'><head>";
+    $body .= "<meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'>";
+    $body .= "<link href='https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap' rel='stylesheet'>";
+    $body .= "<style>";
+    $body .= "body{margin:0;padding:0;background:#f2ede0;font-family:'Noto Sans',Arial,sans-serif}";
+    $body .= ".wrapper{max-width:600px;margin:0 auto;padding:20px 12px}";
+    $body .= ".header{background:linear-gradient(135deg,#163459 0%,#1e4d87 100%);border-radius:12px 12px 0 0;padding:28px 32px;text-align:center}";
+    $body .= ".header h1{color:#fff;margin:0;font-size:26px;font-weight:700;letter-spacing:-0.5px}";
+    $body .= ".header .date{color:#b8d6f5;margin:6px 0 0;font-size:14px}";
+    $body .= ".header .gold-bar{width:48px;height:3px;background:linear-gradient(90deg,#b8860b,#d4a017);border-radius:2px;margin:12px auto 0}";
+    $body .= ".body-wrap{background:#fffef8;padding:28px 32px;border-radius:0 0 12px 12px;border:1px solid #e8e0cd;border-top:none}";
+    $body .= ".intro{color:#3d3628;font-size:15px;margin:0 0 20px;line-height:1.5}";
+    $body .= ".word-card{border-left:4px solid #1e4d87;padding:16px 20px;margin:16px 0;background:#f9f6ee;border-radius:0 8px 8px 0;border:1px solid #e5dece;border-left:4px solid #1e4d87}";
+    $body .= ".word-term{color:#0d1f35;margin:0 0 4px;font-size:19px;font-weight:700;line-height:1.3}";
+    $body .= ".word-term a{color:#0d1f35;text-decoration:none}";
+    $body .= ".word-pron{color:#7d7260;font-size:13px;font-style:italic;font-weight:400}";
+    $body .= ".word-def{color:#5a5144;margin:6px 0 0;font-size:14px;line-height:1.65}";
+    $body .= ".word-notes{color:#a89e88;margin:8px 0 0;font-size:12px}";
+    $body .= ".cat-badge{display:inline-block;background:#163459;color:#fff;padding:3px 12px;border-radius:12px;font-size:12px;font-weight:600;margin-top:10px;letter-spacing:0.3px}";
+    $body .= ".divider{border:none;border-top:1px solid #e8e0cd;margin:24px 0}";
+    $body .= ".footer{text-align:center;color:#a89e88;font-size:12px;margin-top:20px;padding-top:16px}";
+    $body .= ".footer strong{color:#b8860b}";
+    $body .= "@media only screen and (max-width:480px){";
+    $body .= ".wrapper{padding:10px 4px}.header{padding:20px 18px;border-radius:8px 8px 0 0}.header h1{font-size:20px}";
+    $body .= ".body-wrap{padding:18px 14px}.word-card{padding:12px 14px}";
+    $body .= "}";
+    $body .= "</style></head>";
+    $body .= "<body><div class='wrapper'>";
+    $body .= "<div class='header'>";
+    $body .= "<h1>&#128218; LexiVault Daily Digest</h1>";
+    $body .= "<p class='date'>" . date('l, F j, Y') . "</p>";
+    $body .= "<div class='gold-bar'></div>";
+    $body .= "</div>";
+    $body .= "<div class='body-wrap'>";
+    $body .= "<p class='intro'>Here are your words for today. Keep growing your vocabulary!</p>";
+    $count = 0;
     foreach ($todayWords as $w) {
+        $count++;
         $wordUrl = $baseUrl . '/?page=words&view_id=' . $w['id'];
-        $body .= "<div style='border-left:4px solid #1a5276;padding:15px 20px;margin:15px 0;background:#f8faff;border-radius:0 6px 6px 0'>";
-        $termDisplay = htmlspecialchars($w['term']);
-        if (!empty($w['pronunciation'])) $termDisplay .= " <span style='color:#666;font-size:14px;font-weight:normal;font-style:italic'>" . htmlspecialchars($w['pronunciation']) . "</span>";
-        $body .= "<h3 style='color:#0d2137;margin:0 0 6px;font-size:18px'><a href='{$wordUrl}' style='color: #0d2137; text-decoration: none;'>{$termDisplay}</a></h3>";
-        $body .= "<p style='color:#666;margin:0;font-size:14px'>" . strip_tags($w['definition'] ?? '') . "</p>";
+        $body .= "<div class='word-card'>";
+        $termHtml = "<a href='{$wordUrl}'>" . htmlspecialchars($w['term']) . "</a>";
+        if (!empty($w['pronunciation'])) $termHtml .= " <span class='word-pron'>" . htmlspecialchars($w['pronunciation']) . "</span>";
+        $body .= "<h3 class='word-term'>{$termHtml}</h3>";
+        $body .= "<p class='word-def'>" . strip_tags($w['definition'] ?? '') . "</p>";
         if (!empty($w['notes'])) {
-            $body .= "<p style='color:#888;margin:8px 0 0;font-size:12px'><strong>Notes:</strong> " . htmlspecialchars($w['notes']) . "</p>";
+            $body .= "<p class='word-notes'><strong>Notes:</strong> " . htmlspecialchars($w['notes']) . "</p>";
         }
         if (!empty($w['category_name'])) {
-            $body .= "<span style='display:inline-block;background:#1a5276;color:#fff;padding:2px 10px;border-radius:12px;font-size:12px;margin-top:8px'>" . htmlspecialchars($w['category_name']) . "</span>";
+            $body .= "<span class='cat-badge'>" . htmlspecialchars($w['category_name']) . "</span>";
         }
         $body .= "</div>";
     }
-    $body .= "<p style='color:#999;font-size:12px;text-align:center;margin-top:30px'>Sent by LexiVault &bull; Your Personal Vocabulary Manager</p>";
-    $body .= "</div></body></html>";
+    $body .= "<hr class='divider'>";
+    $body .= "<div class='footer'>Sent by <strong>LexiVault</strong> &bull; Your Personal Vocabulary Manager<br>Total words today: {$count}</div>";
+    $body .= "</div></div></body></html>";
 
     $headers = [
         'MIME-Version: 1.0',
@@ -1018,25 +1050,22 @@ if (!isLoggedIn() && !in_array($page, ['login', 'public_search'])) {
     exit;
 }
 
-// Check digest schedule
-if (isLoggedIn() && $isSetup) {
-  try {
-    $settings = getSettings();
-    if (!empty($settings['digest_enabled']) && !empty($settings['digest_email'])) {
-        $tz = $settings['timezone'] ?? 'Asia/Kolkata';
-        date_default_timezone_set($tz);
-        $now = date('H:i');
-        $digestTime = $settings['digest_time'] ?? '21:00';
-        $today = date('Y-m-d');
-        if ($now >= $digestTime && ($settings['last_digest_sent'] ?? '') < $today) {
-            $words = getWordsList();
-            if (sendDigestEmail($settings, $words)) {
-                $settings['last_digest_sent'] = $today;
-                saveSettings($settings);
-            }
-        }
+// Digest trigger via secret endpoint
+if (isset($_GET['digest_trigger']) && $_GET['digest_trigger'] === 'p3uiCUO4eF8wICzuQ84WPGNP37q_I6FADptXUYyL1pk') {
+    try {
+        $settings = getSettings();
+        $words = getWordsList();
+        $result = sendDigestEmail($settings, $words);
+        if (ob_get_length()) ob_clean();
+        header('Content-Type: application/json');
+        echo json_encode(['success' => $result, 'message' => $result ? 'Digest sent successfully' : 'Failed - check SMTP settings']);
+        exit;
+    } catch (Exception $e) {
+        if (ob_get_length()) ob_clean();
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        exit;
     }
-  } catch (Exception $e) {}
 }
 
 $appName = 'LexiVault';
@@ -1054,7 +1083,7 @@ if ($isSetup) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title><?= htmlspecialchars($appName) ?></title>
-<link rel="icon" href="https://i.ibb.co/4wFG8GqJ/Screenshot-20260329-171925.png">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%228%22%20fill%3D%22%23faf3dc%22/%3E%3Crect%20x%3D%229%22%20y%3D%226%22%20width%3D%2214%22%20height%3D%2220%22%20rx%3D%223%22%20fill%3D%22none%22%20stroke%3D%22%230A1628%22%20stroke-width%3D%222%22/%3E%3Ccircle%20cx%3D%2216%22%20cy%3D%2214%22%20r%3D%222.4%22%20fill%3D%22none%22%20stroke%3D%22%230A1628%22%20stroke-width%3D%222%22/%3E%3Cline%20x1%3D%2216%22%20y1%3D%2216.8%22%20x2%3D%2216%22%20y2%3D%2219.5%22%20stroke%3D%22%230A1628%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
@@ -1062,6 +1091,7 @@ if ($isSetup) {
 <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
 <style>
 :root {
+  /* Navy palette (accent color) */
   --navy-950: #040e1c;
   --navy-900: #0d1f35;
   --navy-800: #0f2847;
@@ -1071,38 +1101,54 @@ if ($isSetup) {
   --navy-400: #2a6baf;
   --navy-300: #4a8fd4;
   --navy-200: #7ab3e8;
-  --navy-100: #b8d6f5;
-  --navy-50: #e8f2fc;
-  --white: #ffffff;
-  --gray-50: #f7f9fc;
-  --gray-100: #eef2f8;
-  --gray-200: #dde5f0;
-  --gray-300: #c5d3e8;
-  --gray-400: #9bafc9;
-  --gray-500: #6e87a8;
-  --gray-600: #4d6580;
-  --gray-700: #344358;
-  --gray-800: #1e2d3f;
-  --accent: #2e7dd1;
-  --accent-light: #3d8fe6;
+  --navy-100: #d6e6f7;
+  --navy-50: #edf4fb;
+  /* Creamy white palette */
+  --white: #fffef8;
+  --cream: #fdfcf9;
+  --cream-dark: #f7f5ef;
+  --cream-border: #ece6d8;
+  /* Gold accent */
+  --gold: #b8860b;
+  --gold-dark: #8a6a14;
+  --gold-light: #d4a017;
+  --gold-pale: #faf3dc;
+  --gold-border: #e8c96a;
+  /* Grays (warm-tinted) */
+  --gray-50: #fbfaf6;
+  --gray-100: #f2ede0;
+  --gray-200: #e5dece;
+  --gray-300: #ccc4b0;
+  --gray-400: #a89e88;
+  --gray-500: #7d7260;
+  --gray-600: #5a5144;
+  --gray-700: #3d3628;
+  --gray-800: #1e1a10;
+  /* Primary accent: navy blue */
+  --accent: #1e4d87;
+  --accent-light: #2a6baf;
+  /* States */
   --success: #1a7c5c;
   --success-light: #e8f7f2;
   --warning: #c47c0a;
   --warning-light: #fef9ec;
   --danger: #c0392b;
   --danger-light: #fef2f0;
-  --gold: #c9a227;
+  /* Layout */
   --sidebar-w: 250px;
-  --header-h: 60px;
+  --header-h: 52px;
   --radius: 10px;
   --radius-sm: 6px;
-  --shadow-sm: 0 2px 8px rgba(13,31,53,0.04);
-  --shadow: 0 8px 24px rgba(13,31,53,0.08);
-  --shadow-lg: 0 16px 48px rgba(13,31,53,0.12);
-  --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  --glass-bg: rgba(255, 255, 255, 0.85);
-  --glass-border: 1px solid rgba(255, 255, 255, 0.8);
-  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+  /* Shadows (warm-tinted) */
+  --shadow-sm: 0 2px 8px rgba(20,24,32,0.05);
+  --shadow: 0 6px 18px rgba(20,24,32,0.08);
+  --shadow-lg: 0 12px 32px rgba(20,24,32,0.12);
+  /* Transitions: slightly faster = lighter feel */
+  --transition: all 0.12s ease;
+  /* Glass: lighter blur, warm tint */
+  --glass-bg: rgba(255,254,248,0.82);
+  --glass-border: 1px solid rgba(232,224,205,0.75);
+  --glass-shadow: 0 4px 16px rgba(30,18,5,0.06);
 }
 
 .autocomplete-items {
@@ -1124,7 +1170,7 @@ if ($isSetup) {
   cursor: pointer;
   color: var(--gray-800);
   font-size: 14px;
-  border-bottom: 1px solid var(--gray-100);
+  border-bottom: 1px solid var(--cream-border);
 }
 .autocomplete-items div:last-child { border-bottom: none; }
 .autocomplete-items div:hover {
@@ -1138,7 +1184,7 @@ html { font-size: 15px; scroll-behavior: smooth; }
 
 body {
   font-family: 'Noto Sans', sans-serif;
-  background: linear-gradient(135deg, #f6f8fd 0%, #f1f5f9 100%);
+  background: var(--cream);
   background-attachment: fixed;
   color: var(--gray-800);
   min-height: 100vh;
@@ -1157,7 +1203,7 @@ body {
 .login-page {
   min-height: 100vh;
   display: flex;
-  background: linear-gradient(135deg, #f6f8fd 0%, #f1f5f9 100%);
+  background: var(--cream);
   position: relative;
   overflow: hidden;
   padding: 20px;
@@ -1181,7 +1227,7 @@ body {
   z-index: 10;
   margin: auto;
   background: var(--white);
-  border: 1px solid var(--gray-200);
+  border: 1px solid var(--cream-border);
   border-radius: 20px;
   padding: 48px 40px;
   width: 100%;
@@ -1195,13 +1241,14 @@ body {
 .login-logo .logo-mark {
   width: 60px;
   height: 60px;
-  background: linear-gradient(135deg, var(--navy-400), var(--accent));
+  background: var(--gold-pale, #f7ecd2);
+  border: 1px solid var(--cream-border);
   border-radius: 16px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 16px;
-  box-shadow: 0 8px 24px rgba(46,125,209,0.4);
+  box-shadow: 0 3px 10px rgba(201,168,76,0.25);
 }
 .login-logo h1 {
   font-size: 28px;
@@ -1257,8 +1304,8 @@ body {
 .btn-login {
   width: 100%;
   padding: 13px;
-  background: var(--accent);
-  color: white;
+  background: var(--navy-700);
+  color: var(--white);
   border: none;
   border-radius: var(--radius-sm);
   font-size: 14px;
@@ -1271,8 +1318,8 @@ body {
 }
 .btn-login:hover {
   transform: translateY(-1px);
-  background: var(--accent-light);
-  box-shadow: 0 6px 16px rgba(46,125,209,0.3);
+  background: var(--navy-800);
+  box-shadow: 0 6px 16px rgba(22,52,89,0.35);
 }
 .login-hint {
   text-align: center;
@@ -1290,30 +1337,33 @@ body {
 /* ---- SIDEBAR ---- */
 .sidebar {
   width: var(--sidebar-w);
-  background: var(--white);
+  background: var(--cream);
   position: fixed;
   top: 0; left: 0; bottom: 0;
   z-index: 100;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: transform 0.3s ease;
-  border-right: 1px solid var(--gray-200);
+  transition: transform 0.2s ease;
+  border-right: 1px solid var(--cream-border);
 }
 .sidebar-logo {
-  padding: 20px 24px;
+  height: var(--header-h);
+  padding: 0 24px;
   display: flex;
   align-items: center;
   gap: 12px;
-  border-bottom: 1px solid var(--gray-100);
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--cream-border);
 }
 .sidebar-logo .logo-mark {
-  width: 36px; height: 36px;
-  background: linear-gradient(135deg, var(--navy-400), var(--accent));
+  width: 32px; height: 32px;
+  background: var(--gold-pale, #f7ecd2);
+  border: 1px solid var(--cream-border);
   border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(46,125,209,0.25);
+  box-shadow: 0 2px 6px rgba(201,168,76,0.2);
 }
 .sidebar-logo h2 {
   font-size: 19px;
@@ -1368,17 +1418,19 @@ body {
   color: var(--navy-900);
 }
 .nav-item.active {
-  background: var(--navy-50);
-  color: var(--accent);
+  background: var(--gold-pale);
+  color: var(--gold);
   font-weight: 600;
+  border-left: 3px solid var(--gold);
+  padding-left: 9px;
 }
-.nav-item.active svg { color: var(--accent); }
+.nav-item.active svg { color: var(--gold); }
 .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--gray-400); transition: var(--transition); }
 .nav-item:hover svg { color: var(--gray-600); }
-.nav-item.active:hover svg { color: var(--accent); }
+.nav-item.active:hover svg { color: var(--gold); }
 .nav-badge {
   margin-left: auto;
-  background: var(--accent);
+  background: var(--navy-600);
   color: white;
   font-size: 10px;
   font-weight: 600;
@@ -1389,22 +1441,23 @@ body {
 }
 .sidebar-user {
   padding: 16px 20px;
-  border-top: 1px solid var(--gray-100);
+  border-top: 1px solid var(--cream-border);
   display: flex;
   align-items: center;
   gap: 10px;
-  background: var(--gray-50);
+  background: var(--cream-dark);
 }
 .user-avatar {
   width: 36px; height: 36px;
-  background: var(--accent);
+  background: linear-gradient(160deg, var(--gold-pale, #faf3dc), var(--cream-border, #ece6d8));
+  border: 1px solid var(--gold, #c9a84c);
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  color: white;
-  font-weight: 600;
+  color: var(--navy-900);
+  font-weight: 700;
   font-size: 13px;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(46,125,209,0.3);
+  box-shadow: 0 2px 6px rgba(201,168,76,0.25);
 }
 .user-info { flex: 1; min-width: 0; }
 .user-info .uname {
@@ -1444,45 +1497,62 @@ body {
 
 /* ---- HEADER ---- */
 .app-header {
+  transform: translateZ(0);
+  will-change: transform;
   height: var(--header-h);
-  background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--gray-200);
+  background: var(--cream);
+  border-bottom: 1px solid var(--cream-border);
   display: flex;
   align-items: center;
-  padding: 0 28px;
-  gap: 16px;
+  padding: 0 20px;
+  gap: 12px;
   position: sticky;
   top: 0;
   z-index: 50;
   box-shadow: var(--shadow-sm);
 }
 .header-title {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--navy-900);
   flex: 1;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.2px;
 }
 .header-actions { display: flex; align-items: center; gap: 10px; }
 .hamburger {
   display: none;
-  background: var(--white);
-  border: 1px solid var(--gray-200);
+  position: relative;
+  width: 34px; height: 34px;
+  background: var(--cream-dark);
+  border: 1px solid var(--cream-border);
   cursor: pointer;
-  color: var(--navy-900);
-  padding: 6px;
-  border-radius: 6px;
-  box-shadow: var(--shadow-sm);
+  border-radius: 8px;
+  margin-right: 4px;
+  flex-shrink: 0;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
+.hamburger:hover { background: var(--gold-pale, #f7ecd2); border-color: var(--gold); }
+.hamburger-bar {
+  position: absolute;
+  left: 8px; right: 8px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--navy-900);
+  transition: transform 0.25s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease, top 0.25s ease;
+}
+.hamburger .bar1 { top: 11px; }
+.hamburger .bar2 { top: 16px; }
+.hamburger .bar3 { top: 21px; }
+.hamburger.is-open .bar1 { top: 16px; transform: rotate(45deg); }
+.hamburger.is-open .bar2 { opacity: 0; }
+.hamburger.is-open .bar3 { top: 16px; transform: rotate(-45deg); }
 
 /* ---- PAGE CONTENT ---- */
 .page-content {
   flex: 1;
   padding: 28px;
-  max-width: 1400px;
   width: 100%;
+  max-width: none;
   box-sizing: border-box;
   overflow-x: hidden;
 }
@@ -1496,8 +1566,8 @@ body {
 }
 .stat-card {
   background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   border-radius: var(--radius);
   padding: 20px;
   box-shadow: var(--shadow-sm);
@@ -1507,17 +1577,20 @@ body {
   gap: 16px;
   transition: var(--transition);
 }
-.stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: rgba(255,255,255,0.9); }
+.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--cream-border); }
 .stat-icon {
   width: 48px; height: 48px;
-  border-radius: 12px;
+  border-radius: 14px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
+  border: 1px solid transparent;
+  transition: transform 0.15s ease;
 }
-.stat-icon.blue { background: var(--navy-50); color: var(--accent); }
-.stat-icon.green { background: var(--success-light); color: var(--success); }
-.stat-icon.gold { background: rgba(201,162,39,0.1); color: var(--gold); }
-.stat-icon.navy { background: rgba(13,31,53,0.07); color: var(--navy-600); }
+.stat-card:hover .stat-icon { transform: scale(1.05); }
+.stat-icon.blue { background: rgba(30,77,135,0.08); color: var(--accent); border-color: rgba(30,77,135,0.16); }
+.stat-icon.green { background: rgba(34,139,87,0.1); color: var(--success); border-color: rgba(34,139,87,0.18); }
+.stat-icon.gold { background: rgba(184,134,11,0.1); color: var(--gold); border-color: rgba(184,134,11,0.2); }
+.stat-icon.navy { background: rgba(10,22,40,0.06); color: var(--navy-600); border-color: rgba(10,22,40,0.12); }
 .stat-icon svg { width: 22px; height: 22px; }
 .stat-info .stat-value {
   font-size: 28px;
@@ -1551,11 +1624,11 @@ body {
 }
 .btn svg { width: 16px; height: 16px; }
 .btn-primary {
-  background: var(--accent);
-  color: white;
-  border-color: var(--accent);
+  background: var(--navy-700);
+  color: var(--white);
+  border-color: var(--navy-700);
 }
-.btn-primary:hover { background: var(--accent-light); border-color: var(--accent-light); box-shadow: 0 4px 12px rgba(46,125,209,0.25); transform: translateY(-1px); }
+.btn-primary:hover { background: var(--accent-light); border-color: var(--accent-light); box-shadow: 0 3px 10px rgba(30,77,135,0.25); transform: translateY(-1px); }
 .btn-secondary {
   background: var(--white);
   color: var(--gray-700);
@@ -1581,9 +1654,9 @@ body {
 
 /* ---- SEARCH & FILTER BAR ---- */
 .filter-bar {
-  background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(249,246,238,0.9);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   border: var(--glass-border);
   border-radius: var(--radius);
   padding: 14px 18px;
@@ -1650,8 +1723,8 @@ body {
 }
 .word-card {
   background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   border: var(--glass-border);
   border-radius: var(--radius);
   padding: 24px;
@@ -1661,7 +1734,7 @@ body {
   display: flex;
   flex-direction: column;
 }
-.word-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: rgba(255,255,255,0.9); }
+.word-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--cream-border); }
 .word-card-header {
   display: flex;
   align-items: flex-start;
@@ -1717,8 +1790,9 @@ body {
   border-radius: 20px;
   font-size: 12px;
   font-weight: 500;
-  background: var(--navy-50);
+  background: var(--gold-pale);
   color: var(--navy-700);
+  border: 1px solid var(--gold-border);
 }
 .word-date-badge {
   font-size: 12px;
@@ -1782,14 +1856,14 @@ body {
   padding: 20px;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.25s ease;
+  transition: opacity 0.15s ease;
   backdrop-filter: blur(8px);
 }
 .modal-overlay.active { opacity: 1; pointer-events: all; }
 .modal {
   background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(32px);
-  -webkit-backdrop-filter: blur(32px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(0,0,0,0.05);
   border-radius: 20px;
   box-shadow: 0 24px 48px rgba(0,0,0,0.15);
@@ -1799,7 +1873,7 @@ body {
   display: flex;
   flex-direction: column;
   transform: translateY(16px);
-  transition: transform 0.25s ease;
+  transition: transform 0.15s ease;
 }
 .modal-overlay.active .modal { transform: translateY(0); }
 .modal-sm { max-width: 440px; }
@@ -1890,6 +1964,7 @@ body {
   width: 100%;
   border-collapse: collapse;
   font-size: 13.5px;
+  table-layout: fixed;
 }
 .data-table th {
   text-align: left;
@@ -1901,21 +1976,27 @@ body {
   color: var(--gray-500);
   border-bottom: 2px solid var(--gray-100);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .data-table td {
   padding: 13px 16px;
   border-bottom: 1px solid var(--gray-100);
   vertical-align: middle;
   color: var(--gray-700);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .data-table tr:hover td { background: var(--gray-50); }
 .data-table tr:last-child td { border-bottom: none; }
 
 /* ---- CARD CONTAINER ---- */
 .card {
+  transform: translateZ(0);
   background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   border: var(--glass-border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
@@ -2020,8 +2101,8 @@ body {
 /* ---- SETTINGS ---- */
 .settings-section {
   background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   border: var(--glass-border);
   border-radius: var(--radius);
   margin-bottom: 20px;
@@ -2104,7 +2185,7 @@ body {
   height: 100%;
   border-radius: 5px;
   background: linear-gradient(90deg, var(--navy-500), var(--accent));
-  transition: width 0.6s ease;
+  transition: width 0.3s ease;
 }
 .chart-bar-count { color: var(--gray-500); width: 35px; flex-shrink: 0; text-align: right; font-size: 12px; font-weight: 600; }
 
@@ -2159,8 +2240,8 @@ body {
 }
 .cat-card {
   background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   border: var(--glass-border);
   border-radius: var(--radius);
   padding: 16px 18px;
@@ -2172,7 +2253,7 @@ body {
   cursor: pointer;
   min-width: 0;
 }
-.cat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.cat-card:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
 .cat-color-dot {
   width: 44px; height: 44px;
   border-radius: 12px;
@@ -2263,6 +2344,15 @@ body {
 }
 
 /* ---- RESPONSIVE ---- */
+
+@media (max-width: 900px) {
+  .app-header { height: 46px; padding: 0 10px; gap: 8px; }
+  .hamburger { margin-right: 0; width: 30px; height: 30px; }
+  .hamburger .bar1 { top: 9px; } .hamburger .bar2 { top: 14px; } .hamburger .bar3 { top: 19px; }
+  .hamburger.is-open .bar1, .hamburger.is-open .bar3 { top: 14px; }
+  .header-title { font-size: 15px; }
+  .sidebar-logo { padding: 14px 16px; }
+}
 @media (max-width: 900px) {
   .sidebar { transform: translateX(-100%); }
   .sidebar.open { transform: translateX(0); }
@@ -2388,7 +2478,7 @@ body {
   border: 2px solid var(--gray-200);
   border-top-color: var(--accent);
   border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+  animation: spin 0.55s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -2414,7 +2504,7 @@ body {
   align-items: center;
   gap: 16px;
   opacity: 0;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
 }
 #bulk-action-bar.active {
@@ -2444,7 +2534,7 @@ body {
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-lg);
   transform: translateX(120%);
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   opacity: 0;
   pointer-events: none;
 }
@@ -2496,16 +2586,80 @@ body {
     color: var(--navy-700);
     border-color: var(--accent);
 }
+
+/* ---- FULL PAGE PRELOADER ---- */
+#page-preloader {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--cream);
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity 0.12s ease, visibility 0.12s ease;
+  opacity: 1; visibility: visible;
+}
+#page-preloader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+.preloader-mark {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: var(--gold-pale, #f7ecd2);
+  border: 1px solid var(--cream-border);
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.preloader-mark svg { width: 26px; height: 26px; }
+.preloader-ring {
+  position: absolute; inset: -6px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--gold, #c9a84c);
+  animation: preloaderSpin 0.55s linear infinite;
+}
+@keyframes preloaderSpin { to { transform: rotate(360deg); } }
+.pulse-heart-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px; height: 16px;
+  margin: 0 2px;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+  overflow: visible;
+}
+.pulse-heart {
+  display: block;
+  transform-origin: center;
+  animation: heartBeat 1.1s ease-in-out infinite;
+}
+@keyframes heartBeat {
+  0%, 100% { transform: scale(1); }
+  25% { transform: scale(1.18); }
+  40% { transform: scale(0.95); }
+  60% { transform: scale(1.1); }
+}
+.page-content { animation: pageFadeIn 0.25s ease; }
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 </style>
 </head>
 <body>
+<div id="page-preloader">
+  <div class="preloader-mark">
+    <div class="preloader-ring"></div>
+    <svg viewBox="0 0 24 24" fill="none" stroke="var(--navy-900)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4.5" y="3" width="15" height="18" rx="2.5"/>
+      <circle cx="12" cy="10.5" r="2.1"/>
+      <line x1="12" y1="12.6" x2="12" y2="15.2"/>
+    </svg>
+  </div>
+</div>
 
 <?php if (!$isSetup): ?>
 <div class="login-page">
   <div class="login-grid-bg"></div>
   <div class="login-panel" style="max-width:540px">
     <div class="login-logo">
-      <div class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="28" height="28"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+      <div class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="var(--navy-900)" stroke-width="1.8" width="26" height="26"><rect x="4.5" y="3" width="15" height="18" rx="2.5"/><circle cx="12" cy="10.5" r="2.1"/><line x1="12" y1="12.6" x2="12" y2="15.2"/></svg></div>
       <h1>LexiVault Setup</h1>
       <p id="setup-subtitle">Step 1: Configure your database</p>
     </div>
@@ -2602,9 +2756,10 @@ async function doSetup() {
   <div class="login-panel">
     <div class="login-logo">
       <div class="logo-mark">
-        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
-          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-          <line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/>
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--navy-900)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="26" height="26">
+          <rect x="4.5" y="3" width="15" height="18" rx="2.5"/>
+          <circle cx="12" cy="10.5" r="2.1"/>
+          <line x1="12" y1="12.6" x2="12" y2="15.2"/>
         </svg>
       </div>
       <h1>LexiVault</h1>
@@ -2891,8 +3046,10 @@ function escapeHtml(unsafe) {
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
       <div class="logo-mark">
-        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
-          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--navy-900)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+          <rect x="4.5" y="3" width="15" height="18" rx="2.5"/>
+          <circle cx="12" cy="10.5" r="2"/>
+          <line x1="12" y1="12.5" x2="12" y2="15"/>
         </svg>
       </div>
       <div>
@@ -2949,8 +3106,10 @@ function escapeHtml(unsafe) {
   <!-- MAIN -->
   <div class="main-content">
     <header class="app-header">
-      <button class="hamburger" onclick="toggleSidebar()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      <button class="hamburger" id="hamburgerBtn" onclick="toggleSidebar()" aria-label="Toggle menu">
+        <span class="hamburger-bar bar1"></span>
+        <span class="hamburger-bar bar2"></span>
+        <span class="hamburger-bar bar3"></span>
       </button>
       <div class="header-title" id="page-title">
         <?php
@@ -3156,7 +3315,7 @@ function escapeHtml(unsafe) {
           <option value="starred">Starred</option>
         </select>
       </div>
-      <div style="background:var(--gray-200);height:4px;border-radius:2px;margin-bottom:12px;overflow:hidden"><div id="review-progress-bar" style="background:var(--accent);height:100%;width:0%;transition:width 0.3s"></div></div>
+      <div style="background:var(--gray-200);height:4px;border-radius:2px;margin-bottom:12px;overflow:hidden"><div id="review-progress-bar" style="background:var(--gold);height:100%;width:0%;transition:width 0.3s"></div></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;font-size:13px;color:var(--gray-500)">
         <div id="review-progress">Loading...</div>
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="review-autoplay"> Auto-play Audio</label>
@@ -3331,26 +3490,20 @@ function escapeHtml(unsafe) {
             <input type="email" name="digest_email" id="set-digest-email" placeholder="you@example.com">
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-field">
-            <label>Digest Send Time (daily)</label>
-            <input type="time" name="digest_time" id="set-digest-time" value="21:00">
-          </div>
-        </div>
-        <div class="toggle-wrap">
-          <div class="toggle-info">
-            <h4>Enable Daily Digest</h4>
-            <p>Automatically send word summary email at scheduled time</p>
-          </div>
-          <label class="toggle">
-            <input type="checkbox" name="digest_enabled" id="set-digest-enabled">
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-        <div style="margin-top:16px">
-          <button type="button" class="btn btn-secondary" onclick="sendTestDigest()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            Send Test Digest Now
+        <div style="margin-top:16px;background:var(--gold-pale);border:1px solid var(--gold-border);border-radius:var(--radius-sm);padding:16px">
+          <h4 style="color:var(--navy-800);font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            Digest API Endpoint
+          </h4>
+          <p style="font-size:12px;color:var(--gray-600);margin-bottom:10px">Call this URL to trigger digest (via cron, webhook, or manually). Keep the key secret.</p>
+          <code style="display:block;background:var(--navy-900);color:#b8d6f5;padding:10px 14px;border-radius:6px;font-size:12px;word-break:break-all;user-select:all">?digest_trigger=p3uiCUO4eF8wICzuQ84WPGNP37q_I6FADptXUYyL1pk</code>
+          <button type="button" class="btn btn-secondary" style="margin-top:12px;font-size:12px;padding:7px 14px" onclick="(()=>{const url=window.location.origin+window.location.pathname+'?digest_trigger=p3uiCUO4eF8wICzuQ84WPGNP37q_I6FADptXUYyL1pk';navigator.clipboard.writeText(url).then(()=>toast('Endpoint URL copied!','success'));})()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copy Endpoint URL
+          </button>
+          <button type="button" class="btn btn-primary" style="margin-top:12px;margin-left:8px;font-size:12px;padding:7px 14px" onclick="sendTestDigest()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Send Test Now
           </button>
         </div>
       </div>
@@ -3709,10 +3862,14 @@ document.addEventListener('DOMContentLoaded', () => {
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
   document.getElementById('sidebarOverlay').classList.toggle('active');
+  var hb = document.getElementById('hamburgerBtn');
+  if (hb) hb.classList.toggle('is-open');
 }
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sidebarOverlay').classList.remove('active');
+  var hb = document.getElementById('hamburgerBtn');
+  if (hb) hb.classList.remove('is-open');
 }
 
 // ============================================================
@@ -3913,15 +4070,15 @@ async function loadDashboard() {
       const isToday = date === serverToday;
       const isEmpty = count === 0;
       // App palette matching stats cards
-      const top = isEmpty ? '#f7f9fc' : (isToday ? '#3d8fe6' : '#7ab3e8');
-      const bot = isEmpty ? '#eef2f8' : (isToday ? '#1e4d87' : '#2a6baf');
+      const top = isEmpty ? '#f9f6ee' : (isToday ? '#e0bb52' : '#d9c787');
+      const bot = isEmpty ? '#f0ead9' : (isToday ? '#b8860b' : '#a78a3f');
       defs += `<linearGradient id="${uid}_g${i}" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="${top}"/>
         <stop offset="100%" stop-color="${bot}"/>
       </linearGradient>`;
       if (isToday) {
         defs += `<filter id="${uid}_glow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#2e7dd1" flood-opacity="0.35"/>
+          <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#b8860b" flood-opacity="0.3"/>
         </filter>`;
       }
     });
@@ -3955,8 +4112,8 @@ async function loadDashboard() {
       const barRx = 6;
 
       // Text colors from app palette
-      const dayColor  = isToday ? '#1e4d87' : '#6e87a8';   // navy-500 vs gray-500
-      const dateColor = isToday ? '#2a6baf' : '#9bafc9';   // navy-400 vs gray-400
+      const dayColor  = isToday ? '#8a6a14' : '#9a8f6e';   // gold-dark vs warm gray
+      const dateColor = isToday ? '#b8860b' : '#b3a780';   // gold vs muted gold-gray
 
       svg += `<g class="daily-bar-group${isToday ? ' bar-today' : ''}" onclick="focusDailyBar(this,event)">`;
 
@@ -3965,7 +4122,7 @@ async function loadDashboard() {
 
       // Hover background
       svg += `<rect class="bar-hover-bg" x="${centerX - colW/2 + 2}" y="${paddingTop}" width="${colW - 4}" height="${chartH}" rx="8"
-        fill="${isToday ? 'rgba(46,125,209,0.08)' : 'rgba(110,135,168,0.06)'}"
+        fill="${isToday ? 'rgba(184,134,11,0.1)' : 'rgba(154,143,110,0.07)'}"
         style="pointer-events:none;opacity:0;transition:opacity 0.2s;"/>`;
 
       // Bar
@@ -3983,7 +4140,7 @@ async function loadDashboard() {
       // Count label above bar inside a badge
       if (count > 0) {
         svg += `<rect x="${centerX - 14}" y="${barY - 26}" width="28" height="18" rx="5"
-          fill="#1e4d87"
+          fill="#8a6a14"
           stroke="none"
           style="pointer-events:none;box-shadow:0 2px 4px rgba(0,0,0,0.05);"></rect>`;
         svg += `<text class="bar-count-label"
@@ -4074,8 +4231,14 @@ function renderWOTD(w) {
   storeWOTD(w);
   wc.style.display = 'block';
   wc.innerHTML = `
-    <div class="card" style="background: linear-gradient(135deg, var(--navy-900), var(--navy-700)); color: white; border: none; overflow:hidden; position:relative;">
-      <div style="position:absolute; right:-20px; top:-20px; opacity:0.1;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="160" height="160"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+    <div class="card" style="background: linear-gradient(135deg, var(--navy-900) 0%, #2d2410 55%, var(--gold-dark, #8a6a14) 100%); color: white; border: none; overflow:hidden; position:relative;">
+      <svg width="100%" height="100%" style="position:absolute;inset:0;opacity:0.12;pointer-events:none;">
+        <defs><pattern id="wotdDots" width="22" height="22" patternUnits="userSpaceOnUse">
+          <circle cx="3" cy="3" r="1.6" fill="var(--gold)"/>
+        </pattern></defs>
+        <rect width="100%" height="100%" fill="url(#wotdDots)"/>
+      </svg>
+      <div style="position:absolute; right:-20px; top:-20px; opacity:0.12;"><svg viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" width="160" height="160"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
       <div class="card-body wotd-body">
         <div style="flex: 1; min-width: 0;">
           <div style="font-size:11px; color:var(--navy-200); text-transform:uppercase; font-weight:600; letter-spacing:1px; margin-bottom:4px; display:flex; align-items:center; gap:6px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Word of the Day</div>
@@ -5124,8 +5287,7 @@ async function loadSettings() {
   set('set-smtp-pass', s.smtp_pass);
   set('set-smtp-from', s.smtp_from);
   set('set-digest-email', s.digest_email);
-  set('set-digest-time', s.digest_time);
-  set('set-digest-enabled', s.digest_enabled);
+
 }
 async function saveSettings() {
   const get = id => { const el = document.getElementById(id); return el ? (el.type==='checkbox' ? el.checked : el.value) : ''; };
@@ -5137,8 +5299,6 @@ async function saveSettings() {
     smtp_pass: get('set-smtp-pass'),
     smtp_from: get('set-smtp-from'),
     digest_email: get('set-digest-email'),
-    digest_time: get('set-digest-time'),
-    digest_enabled: get('set-digest-enabled'),
     words_per_page: get('set-per-page'),
   };
   const r = await apiPost('settings_save', data);
@@ -5303,12 +5463,39 @@ document.addEventListener('click', e => {
 
 (function(){
   const f = document.createElement('div');
-  f.innerHTML = 'Developed with ❤️ by Vineet'; 
+  f.innerHTML = 'Developed with <span class="pulse-heart-wrap"><svg class="pulse-heart" viewBox="0 0 24 24" width="14" height="14" fill="#e0455f"><path d="M12 20.3 2.7 11.2C0.4 8.9 0.4 5.3 2.7 3.1c2.2-2.1 5.7-2.1 7.8 0.2L12 5l1.5-1.7c2.1-2.3 5.6-2.3 7.8-0.2 2.3 2.2 2.3 5.8 0 8.1L12 20.3z"/></svg></span> by Vineet';
   f.style.cssText = "text-align:center; padding:20px; color:var(--gray-500); font-size:14px; font-weight:500; font-family:inherit;";
   if(document.querySelector('.main-content')) document.querySelector('.main-content').appendChild(f);
 })();
 </script>
 
 <?php endif; // isLoggedIn ?>
+
+<script>
+(function(){
+  var pre = document.getElementById('page-preloader');
+  if (!pre) return;
+  function show(){ pre.classList.remove('hidden'); }
+  function hide(){ pre.classList.add('hidden'); }
+  // hide once the page has actually finished loading
+  if (document.readyState === 'complete') {
+    setTimeout(hide, 60);
+  } else {
+    window.addEventListener('load', function(){ setTimeout(hide, 60); });
+  }
+  // show again right before leaving for another page
+  window.addEventListener('beforeunload', show);
+  document.addEventListener('click', function(e){
+    var a = e.target.closest('a[href]');
+    if (a && a.target !== '_blank' && a.href && a.href.indexOf('javascript:') !== 0) show();
+  });
+  document.addEventListener('submit', function(e){
+    if (e.target && e.target.tagName === 'FORM') show();
+  });
+  window.addEventListener('pageshow', function(e){
+    if (e.persisted) hide();
+  });
+})();
+</script>
 </body>
 </html>
